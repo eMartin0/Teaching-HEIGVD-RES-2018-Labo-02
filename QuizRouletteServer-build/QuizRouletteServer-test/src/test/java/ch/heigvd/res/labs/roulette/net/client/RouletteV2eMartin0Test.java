@@ -122,9 +122,9 @@ public class RouletteV2eMartin0Test {
     studentsList.add(new Student("Tiffany James"));
     studentsList.add(new Student("Johanne Leuenberger"));
     client.loadStudents(studentsList);
-    assertEquals(2, client.getNumberOfNewStudents());
+    assertEquals(2, client.getNumberOfStudentAdded());
     client.loadStudent("Jean-Pierre Ghangz");
-    assertEquals(1, client.getNumberOfNewStudents());
+    assertEquals(1, client.getNumberOfStudentAdded());
   }
 
   @Test
@@ -133,7 +133,7 @@ public class RouletteV2eMartin0Test {
     IRouletteV2Client client = (IRouletteV2Client) roulettePair.getClient();
     client.loadStudent("Maëlle Guignard");
     client.getProtocolVersion();
-    client.getLastCommandStatus();
+    client.checkSuccessOfCommand();
     client.disconnect();
     assertEquals(4, client.getNumberOfCommands());
   }

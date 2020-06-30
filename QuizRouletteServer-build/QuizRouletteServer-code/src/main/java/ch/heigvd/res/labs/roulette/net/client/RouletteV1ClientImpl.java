@@ -6,65 +6,103 @@ import ch.heigvd.res.labs.roulette.net.protocol.RouletteV1Protocol;
 import ch.heigvd.res.labs.roulette.data.Student;
 import ch.heigvd.res.labs.roulette.net.protocol.InfoCommandResponse;
 import ch.heigvd.res.labs.roulette.net.protocol.RandomCommandResponse;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+
 
 /**
  * This class implements the client side of the protocol specification (version 1).
  * 
- * @author Olivier Liechti
+ * @author Olivier Liechti, Eloïse Martin
  */
 public class RouletteV1ClientImpl implements IRouletteV1Client {
 
   private static final Logger LOG = Logger.getLogger(RouletteV1ClientImpl.class.getName());
+  /** Connection to the server **/
+  protected Socket mySocket = null;
+  /** Buffered printer to send data to the server **/
+  protected PrintWriter myPWriter = null;
+  /** Buffer reader to receive data from the server **/
+  protected BufferedReader myBReader = null;
 
   @Override
   public void connect(String server, int port) throws IOException {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    mySocket = new Socket(server, port);
+    myPWriter = new PrintWriter(new OutputStreamWriter(mySocket.getOutputStream()));
+    myBReader = new BufferedReader(new InputStreamReader(mySocket.getInputStream()));
+    myBReader.readLine();
   }
 
   @Override
   public void disconnect() throws IOException {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    if (mySocket == null) {
+      return;
+    }
+    myPWriter.println(RouletteV1Protocol.CMD_BYE);
+    myPWriter.flush();
+    mySocket.close();
+    mySocket = null;
+    myBReader.close();
+    myPWriter.close();
   }
 
   @Override
   public boolean isConnected() {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    return mySocket != null;
   }
 
   @Override
   public void loadStudent(String fullname) throws IOException {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    myPWriter.println(RouletteV1Protocol.CMD_LOAD);
+    myPWriter.flush();
+    myBReader.readLine();
+    myPWriter.println(fullname);
+    myPWriter.flush();
+    myPWriter.println(RouletteV1Protocol.CMD_LOAD_ENDOFDATA_MARKER);
+    myPWriter.flush();
+    myBReader.readLine();
   }
 
   @Override
   public void loadStudents(List<Student> students) throws IOException {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    myPWriter.println(RouletteV1Protocol.CMD_LOAD);
+    myPWriter.flush();
+    myBReader.readLine();
+    for (int i = 0; i < students.size(); i++) {
+      myPWriter.println(students.get(i).getFullname());
+    }
+    myPWriter.println(RouletteV1Protocol.CMD_LOAD_ENDOFDATA_MARKER);
+    myPWriter.flush();
+    myBReader.readLine();
   }
 
   @Override
   public Student pickRandomStudent() throws EmptyStoreException, IOException {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    myPWriter.println(RouletteV1Protocol.CMD_RANDOM);
+    myPWriter.flush();
+    RandomCommandResponse randomResponse = JsonObjectMapper.parseJson(myBReader.readLine(), RandomCommandResponse.class);
+    if (randomResponse.getError() != null) {
+      throw new EmptyStoreException();
+    }
+    return new Student(randomResponse.getFullname());
   }
 
   @Override
   public int getNumberOfStudents() throws IOException {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    myPWriter.println(RouletteV1Protocol.CMD_INFO);
+    myPWriter.flush();
+    InfoCommandResponse myInfo = JsonObjectMapper.parseJson(myBReader.readLine(), InfoCommandResponse.class);
+    return myInfo.getNumberOfStudents();
   }
 
   @Override
   public String getProtocolVersion() throws IOException {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    myPWriter.println(RouletteV1Protocol.CMD_INFO);
+    myPWriter.flush();
+    InfoCommandResponse myInfo = JsonObjectMapper.parseJson(myBReader.readLine(), InfoCommandResponse.class);
+    return myInfo.getProtocolVersion();
   }
-
-
 
 }
